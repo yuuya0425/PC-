@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>エリートPCボトルネック診断Pro - Ultimate Edition</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030712;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --accent-cpu: #38bdf8;
+      --accent-gpu: #10b981;
+      --accent-warn: #f59e0b;
+      --accent-danger: #ef4444;
+      --accent-pro: #8b5cf6;
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.15) 0%, transparent 40%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 30px;
+      text-align: center;
+      background: linear-gradient(to right, var(--accent-cpu), var(--accent-gpu), var(--accent-pro));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.05em;
+    }
+
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .grid-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-inputs {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    select {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 12px;
+      color: white;
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    .res-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .res-tab {
+      flex: 1;
+      padding: 8px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+    }
+
+    .res-tab.active {
+      background: var(--accent-cpu);
+      color: var(--bg);
+      font-weight: 800;
+    }
+
+    /* Pro Settings Panel */
+    .pro-settings {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 25px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+    }
+
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 10px 15px;
+      border-radius: 12px;
+      transition: opacity 0.3s;
+    }
+
+    .toggle-group.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #334155;
+      transition: .4s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked+.slider {
+      background-color: var(--accent-pro);
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(20px);
+    }
+
+    .check-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--accent-cpu), var(--accent-gpu));
+      border: none;
+      border-radius: 14px;
+      color: var(--bg);
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: all 0.3s;
+    }
+
+    .check-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+    }
+
+    /* Results */
+    .result-section {
+      margin-top: 30px;
+      display: none;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .main-result-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+
+    @media (max-width: 850px) {
+      .main-result-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      padding: 20px;
+    }
+
+    .balance-bar-container {
+      margin: 20px 0;
+    }
+
+    .balance-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+
+    .balance-bar-bg {
+      height: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .balance-fill {
+      height: 100%;
+      width: 0;
+      position: absolute;
+      transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .stat-item {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .stat-val {
+      font-size: 1rem;
+      font-weight: 800;
+      color: white;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .game-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .game-fps {
+      font-size: 1.4rem;
+      font-weight: 800;
+      display: block;
+    }
+
+    .upgrade-advice {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(56, 189, 248, 0.1));
+      border: 1px solid var(--accent-pro);
+      margin-top: 25px;
+    }
+
+    .alert-card {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--accent-danger);
+      margin-top: 15px;
+      display: none;
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      display: inline-block;
+    }
+
+    .badge-stable {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-gpu);
+    }
+
+    .badge-warn {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-warn);
+    }
+
+    .badge-p2p {
+      border: 1px solid var(--accent-gpu);
+      color: var(--accent-gpu);
+    }
+
+    .footer {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>エリートPC診断 Pro - Ultimate</h1>
+
+  <div class="container">
+    <div class="grid-inputs">
+      <div class="form-group">
+        <label>CPU (プロセッサ)</label>
+        <select id="cpu">
+          <optgroup label="AMD Ryzen (最新・ゲーミング)">
+            <option value="115">Ryzen 9 9950X / 9900X</option>
+            <option value="110">Ryzen 7 9800X3D (ゲーミング最強)</option>
+            <option value="105">Ryzen 9 7950X3D</option>
+            <option value="95" selected>Ryzen 7 7800X3D</option>
+            <option value="100">Ryzen 9 7900X</option>
+            <option value="90">Ryzen 7 7700X</option>
+            <option value="80">Ryzen 5 7600X</option>
+          </optgroup>
+          <optgroup label="Intel Core Ultra / Core i9 (14-12代)">
+            <option value="115">Core Ultra 9 285K</option>
+            <option value="110">Core i9-14900K</option>
+            <option value="100">Core i9-13900K / 12900K</option>
+            <option value="100">Core Ultra 7 265K</option>
+            <option value="95">Core i7-14700K</option>
+            <option value="90">Core i7-13700K / 12700K</option>
+            <option value="90">Core Ultra 5 245K</option>
+          </optgroup>
+          <optgroup label="Intel Core i5 シリーズ (第4世代〜第14世代)">
+            <option value="85">Core i5-14600K (第14世代)</option>
+            <option value="80">Core i5-13600K (第13世代)</option>
+            <option value="75">Core i5-12600K (第12世代)</option>
+            <option value="70">Core i5-12400 (第12世代)</option>
+            <option value="65">Core i5-11400 / 11600K</option>
+            <option value="60">Core i5-10400 / 10600K</option>
+            <option value="55">Core i5-9600K / 9400</option>
+            <option value="50">Core i5-8600K / 8400</option>
+            <option value="45">Core i5-7600K / 7400</option>
+            <option value="40">Core i5-6600K / 6400</option>
+            <option value="25">Core i5-4690 / 4460</option>
+          </optgroup>
+          <optgroup label="AMD Ryzen 5000 / 3000 シリーズ">
+            <option value="90">Ryzen 9 5950X / 5900X</option>
+            <option value="85">Ryzen 7 5800X3D (最強旧世代)</option>
+            <option value="80">Ryzen 7 5800X / 5700X</option>
+            <option value="75">Ryzen 5 5600X / 5600</option>
+            <option value="65">Ryzen 9 3950X / 3900X</option>
+            <option value="60">Ryzen 7 3700X / 3800X</option>
+            <option value="55">Ryzen 5 3600 / 3600X</option>
+          </optgroup>
+          <optgroup label="その他の Intel (i7旧型 / i3 / Mobile)">
+            <option value="75">Core i7-10700K / 9700K</option>
+            <option value="65">Core i7-8700K / 7700K</option>
+            <option value="60">Core i3-14100 / 12100</option>
+            <option value="40">Core i3-10100 / 9100</option>
+            <option value="105">Core 9 270H (モバイルハイエンド)</option>
+            <option value="20">Pentium / Celeron レガシー</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>GPU (グラフィックボード)</label>
+        <select id="gpu" onchange="validateGPUFeatures()">
+          <optgroup label="NVIDIA RTX 50 / 40 (FG対応)">
+            <option value="140" data-dlss="1" data-fg="1" data-vram="32">RTX 5090 (予測)</option>
+            <option value="120" data-dlss="1" data-fg="1" data-vram="24">RTX 4090</option>
+            <option value="105" data-dlss="1" data-fg="1" data-vram="16">RTX 4080 Super / 4080</option>
+            <option value="90" data-dlss="1" data-fg="1" data-vram="16">RTX 4070 Ti Super</option>
+            <option value="85" data-dlss="1" data-fg="1" data-vram="12">RTX 4070 Ti</option>
+            <option value="80" data-dlss="1" data-fg="1" data-vram="12" selected>RTX 4070 Super</option>
+            <option value="75" data-dlss="1" data-fg="1" data-vram="12">RTX 4070</option>
+            <option value="65" data-dlss="1" data-fg="1" data-vram="16">RTX 4060 Ti (16GB)</option>
+            <option value="60" data-dlss="1" data-fg="1" data-vram="8">RTX 4060 Ti (8GB)</option>
+            <option value="55" data-dlss="1" data-fg="1" data-vram="8">RTX 4060</option>
+          </optgroup>
+          <optgroup label="NVIDIA RTX 30 / 20 (超解像対応)">
+            <option value="100" data-dlss="1" data-vram="24">RTX 3090 Ti / 3090</option>
+            <option value="90" data-dlss="1" data-vram="10">RTX 3080 Ti / 3080</option>
+            <option value="80" data-dlss="1" data-vram="8">RTX 3070 Ti / 3070</option>
+            <option value="70" data-dlss="1" data-vram="12">RTX 3060 Ti / 3060</option>
+            <option value="75" data-dlss="1" data-vram="11">RTX 2080 Ti</option>
+            <option value="65" data-dlss="1" data-vram="8">RTX 2080 Super / 2080</option>
+            <option value="60" data-dlss="1" data-vram="8">RTX 2070 Super / 2070</option>
+            <option value="50" data-dlss="1" data-vram="6">RTX 2060 Super / 2060</option>
+          </optgroup>
+          <optgroup label="NVIDIA GTX シリーズ (レガシー)">
+            <option value="55" data-vram="11">GTX 1080 Ti (名機)</option>
+            <option value="45" data-vram="8">GTX 1080 / 1070 Ti</option>
+            <option value="40" data-vram="8">GTX 1070</option>
+            <option value="35" data-vram="6">GTX 1060 6GB</option>
+            <option value="45" data-vram="6">GTX 1660 Ti / Super</option>
+            <option value="40" data-vram="6">GTX 1660</option>
+            <option value="30" data-vram="4">GTX 1650 Super / 1650</option>
+            <option value="35" data-vram="6">GTX 980 Ti</option>
+            <option value="30" data-vram="4">GTX 980 / 970</option>
+            <option value="20" data-vram="4">GTX 1050 Ti / 960</option>
+            <option value="15" data-vram="2">GTX 750 Ti / 780 Ti</option>
+          </optgroup>
+          <optgroup label="AMD Radeon シリーズ">
+            <option value="115" data-vram="24">RX 7900 XTX</option>
+            <option value="95" data-vram="20">RX 7900 XT</option>
+            <option value="85" data-vram="16">RX 7800 XT / 6900 XT</option>
+            <option value="75" data-vram="16">RX 6800 XT / 6800</option>
+            <option value="65" data-vram="12">RX 6700 XT</option>
+            <option value="55" data-vram="8">RX 6600 XT / 6600</option>
+            <option value="40" data-vram="8">RX 580 / 570</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>解像度</label>
+        <div class="res-tabs">
+          <div class="res-tab" data-val="0.75" onclick="setRes(this, 0.75)">720p</div>
+          <div class="res-tab active" data-val="1" onclick="setRes(this, 1)">1080p</div>
+          <div class="res-tab" data-val="1.25" onclick="setRes(this, 1.25)">1440p</div>
+          <div class="res-tab" data-val="1.6" onclick="setRes(this, 1.6)">4K</div>
+          <div class="res-tab" data-val="3.0" onclick="setRes(this, 3.0)">8K</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>メモリ (RAM) & ストレージ</label>
+        <div style="display: flex; gap: 10px;">
+          <select id="ram" style="flex: 1;">
+            <option value="8">8GB (不足)</option>
+            <option value="16">16GB (標準)</option>
+            <option value="32" selected>32GB (推奨)</option>
+            <option value="64">64GB以上</option>
+          </select>
+          <select id="storage" style="flex: 1;">
+            <option value="hdd">HDD (低速)</option>
+            <option value="sata">SATA SSD</option>
+            <option value="nvme" selected>NVMe SSD (高速)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <label style="margin-bottom: 10px; display: block;">Ultimate 詳細設定</label>
+    <div class="pro-settings">
+      <div class="toggle-group" id="group-upscale">
+        <span>DLSS / FSR (超解像)</span>
+        <label class="switch"><input type="checkbox" id="upscale"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-group" id="group-framegen">
+        <span>フレーム生成 (FG)</span>
+        <label class="switch"><input type="checkbox" id="framegen"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-group">
+        <span>レイトレーシング</span>
+        <label class="switch"><input type="checkbox" id="raytracing"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-group">
+        <span>配信モード</span>
+        <label class="switch"><input type="checkbox" id="streaming"><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <button class="check-btn" onclick="analyze()">究極診断を実行する</button>
+
+    <div class="result-section" id="results">
+      <div id="vram-alert" class="card alert-card">
+        <h4 style="color: #ef4444; font-size: 0.9rem;">⚠️ VRAM不足の警告</h4>
+        <p id="vram-msg" style="font-size: 0.8rem; margin-top: 5px;"></p>
+      </div>
+
+      <div class="main-result-grid">
+        <div class="card">
+          <div id="status-badge" class="badge">--</div>
+          <h2 id="result-title">判定中...</h2>
+          <div class="balance-bar-container">
+            <div class="balance-label"><span>CPU制限</span><span>GPU制限</span></div>
+            <div class="balance-bar-bg">
+              <div id="balance-fill" class="balance-fill"></div>
+            </div>
+          </div>
+          <p id="result-desc" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;"></p>
+        </div>
+
+        <div class="card">
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-label">推奨電源</div>
+              <div class="stat-val" id="stat-psu">--W</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">安定性</div>
+              <div class="stat-val" id="stat-score">--/100</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">コスパスコア</div>
+              <div class="stat-val" id="stat-p2p">--</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">月間電気代</div>
+              <div class="stat-val" id="stat-cost">¥0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 25px;">
+        <label>推奨CPUクーラー / 冷却対策</label>
+        <div id="cooler-advice" style="margin-top: 10px; font-weight: 800; color: var(--accent-cpu); font-size: 1rem;">
+        </div>
+      </div>
+
+      <div class="card">
+        <label>想定ゲームパフォーマンス (FPS)</label>
+        <div class="game-grid" id="game-grid"></div>
+      </div>
+
+      <div class="card upgrade-advice">
+        <h3 style="font-size: 0.95rem; margin-bottom: 8px;">🚀 次のアップグレード目標</h3>
+        <p id="advice-text" style="font-size: 0.85rem;"></p>
+        <div id="next-part" style="margin-top: 8px; font-weight: 800; color: var(--accent-pro); font-size: 1rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">※ 推定値は特定の計測環境に基づいた理論値です。© 2026 Elite PC Checker Pro</div>
+
+  <script>
+    let resModifier = 1;
+    function setRes(el, val) {
+      document.querySelectorAll('.res-tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      resModifier = val;
+    }
+
+    const games = [
+      { name: "Apex Legends", base: 160 },
+      { name: "Fortnite", base: 180 },
+      { name: "VALORANT", base: 320 },
+      { name: "CS2", base: 280 },
+      { name: "GTA V", base: 120 },
+      { name: "FH 5", base: 110 },
+      { name: "Minecraft", base: 240, rtHeavy: true },
+      { name: "Wilds (モンハン)", base: 65, rtHeavy: true },
+      { name: "原神", base: 130 },
+      { name: "崩壊:スターレイル", base: 120 },
+      { name: "Cyberpunk 2077", base: 60, rtHeavy: true },
+      { name: "Street Fighter 6", base: 120 }
+    ];
+
+    function validateGPUFeatures() {
+      const gpuSelect = document.getElementById('gpu');
+      const selected = gpuSelect.options[gpuSelect.selectedIndex];
+      const hasDLSS = selected.getAttribute('data-dlss') === "1";
+      const hasFG = selected.getAttribute('data-fg') === "1";
+
+      const upscaleToggle = document.getElementById('upscale');
+      const fgToggle = document.getElementById('framegen');
+
+      upscaleToggle.disabled = !hasDLSS;
+      fgToggle.disabled = !hasFG;
+      document.getElementById('group-upscale').classList.toggle('disabled', !hasDLSS);
+      document.getElementById('group-framegen').classList.toggle('disabled', !hasFG);
+      if (!hasDLSS) upscaleToggle.checked = false;
+      if (!hasFG) fgToggle.checked = false;
+    }
+
+    window.onload = validateGPUFeatures;
+
+    function analyze() {
+      const cpuValue = parseInt(document.getElementById('cpu').value);
+      const gpuSelect = document.getElementById('gpu');
+      const gpuValue = parseInt(gpuSelect.value);
+      const gpuVram = parseInt(gpuSelect.options[gpuSelect.selectedIndex].getAttribute('data-vram') || 4);
+
+      const isUpscale = document.getElementById('upscale').checked;
+      const isFG = document.getElementById('framegen').checked;
+      const isRT = document.getElementById('raytracing').checked;
+      const isStream = document.getElementById('streaming').checked;
+      const ramSize = parseInt(document.getElementById('ram').value);
+      const storageType = document.getElementById('storage').value;
+
+      document.getElementById('results').style.display = 'block';
+
+      // 1. VRAM Alert
+      const vAlert = document.getElementById('vram-alert');
+      const vMsg = document.getElementById('vram-msg');
+      let vramNeeded = 4;
+      if (resModifier >= 1.25) vramNeeded = 8;
+      if (resModifier >= 1.6) vramNeeded = 12;
+      if (isRT) vramNeeded += 2;
+
+      if (gpuVram < vramNeeded) {
+        vAlert.style.display = 'block';
+        vMsg.innerText = `現在の設定では約 ${vramNeeded}GB のVRAMが推奨されますが、このGPUは ${gpuVram}GB です。性能低下のリスクがあります。`;
+      } else {
+        vAlert.style.display = 'none';
+      }
+
+      // 2. Performance Logic
+      const adjGpu = gpuValue / resModifier;
+      const diff = cpuValue - adjGpu;
+      const percent = 50 + (diff / 2.5);
+      const fill = document.getElementById('balance-fill');
+      fill.style.width = Math.abs(percent - 50) + '%';
+      fill.style.left = percent >= 50 ? '50%' : percent + '%';
+      fill.style.background = percent >= 50 ? 'var(--accent-gpu)' : 'var(--accent-cpu)';
+
+      // 3. Stats & Score
+      const tdpCpu = cpuValue * 1.6 + 60;
+      const tdpGpu = gpuValue * 2.8 + 50;
+      const totalTdp = Math.round(tdpCpu + tdpGpu + 120);
+      const recPsu = Math.ceil(totalTdp * 1.5 / 50) * 50;
+
+      let stability = 100 - Math.abs(diff) * 1.5;
+      if (ramSize < 16) stability -= 15;
+      else if (ramSize < 32) stability -= 5;
+      if (storageType === 'hdd') stability -= 20;
+      if (storageType === 'sata') stability -= 5;
+      stability = Math.max(0, stability);
+
+      const kwhCost = 31;
+      const monthlyCost = Math.round((totalTdp / 1000) * 3 * 30 * kwhCost);
+      const p2pScore = Math.floor((gpuValue * cpuValue) / 100);
+
+      document.getElementById('stat-psu').innerText = recPsu + "W";
+      document.getElementById('stat-score').innerText = Math.round(stability) + "/100";
+      document.getElementById('stat-cost').innerText = "¥" + monthlyCost.toLocaleString();
+      document.getElementById('stat-p2p').innerText = p2pScore;
+
+      // 4. Cooler Advice
+      const cooler = document.getElementById('cooler-advice');
+      if (tdpCpu < 85) cooler.innerText = "純正クーラーまたは安価な空冷で対応可能です。";
+      else if (tdpCpu < 165) cooler.innerText = "ミドル〜ハイエンド空冷、または240mm水冷を推奨します。";
+      else cooler.innerText = "360mm以上の本格水冷、または最上位空冷の導入を強く推奨します。";
+
+      // 5. FPS Simulation
+      let aiMult = 1;
+      if (isUpscale) aiMult *= 1.45;
+      if (isFG) aiMult *= 1.7;
+      if (isStream) aiMult *= 0.85;
+
+      let resScale = 1;
+      if (resModifier == 0.75) resScale = 1.45;
+      if (resModifier == 1.25) resScale = 0.75;
+      if (resModifier == 1.6) resScale = 0.45;
+      if (resModifier == 3.0) resScale = 0.15;
+
+      const penalty = diff < -12 ? Math.max(0.4, 1 - (Math.abs(diff) / 100)) : 1;
+      const grid = document.getElementById('game-grid');
+      grid.innerHTML = "";
+
+      games.forEach(g => {
+        let rtPenalty = 1;
+        if (isRT) rtPenalty = g.rtHeavy ? 0.45 : 0.75;
+        let fps = Math.round((g.base * (gpuValue / 55)) * resScale * penalty * aiMult * rtPenalty);
+        grid.innerHTML += `<div class="game-card"><span style="font-size:0.75rem; display:block; height:35px; line-height:1.2;">${g.name}</span><span class="game-fps">${fps}<span style="font-size:0.6rem; color:var(--text-muted); margin-left:3px;">FPS</span></span></div>`;
+      });
+
+      // 6. Advice
+      const badge = document.getElementById('status-badge');
+      const title = document.getElementById('result-title');
+      const desc = document.getElementById('result-desc');
+      const adviceText = document.getElementById('advice-text');
+      const nextPart = document.getElementById('next-part');
+
+      if (Math.abs(diff) < 10) {
+        badge.className = "badge badge-stable";
+        badge.innerText = "Excellent";
+        title.innerText = "理想的なバランスです";
+        desc.innerText = "このCPUとGPUの組み合わせは絶妙です。どちらも力を余らせることなく、効率的に動作します。";
+        adviceText.innerText = "現状、主要パーツの交換は不要です。より高解像度（4K等）を目指すなら、さらに上位のセット検討を。";
+        nextPart.innerText = "目標: 次世代モニター / ストレージの高速化";
+      } else if (diff < 0) {
+        badge.className = "badge badge-warn";
+        badge.innerText = "CPU Limited";
+        title.innerText = "CPUのアップグレードを推奨";
+        desc.innerText = "グラボが強力すぎて、CPUがその速度に追いつけず待ち時間が発生しています。";
+        adviceText.innerText = "CPUを最新の Ryzen X3D や Core i7/i9 に変更することで、フレームレートが大幅に改善します。";
+        nextPart.innerText = "推奨CPU: Ryzen 7 9800X3D / Core Ultra 9 285K";
+      } else {
+        badge.className = "badge badge-warn";
+        badge.innerText = "GPU Limited";
+        title.innerText = "GPUのアップグレードを推奨";
+        desc.innerText = "CPUには余裕がありますが、描写が追いつかずGPUが常に100%の状態です。";
+        adviceText.innerText = "RTX 4070 Super 以上、または次世代のRTX 50シリーズへの更新で劇的に快適になります。";
+        nextPart.innerText = "推奨GPU: RTX 4070 Ti Super 以上";
+      }
+    }
+  </script>
+</body>
+
+</html>
